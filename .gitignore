@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+.vscode/
+.venv/
+dist/
+build/
+
+# Blender backup and autosave files
+*.blend1
+*.blend2
+*.blend[0-9]*
+*.blend@
+*.blend~
+*.autosave
