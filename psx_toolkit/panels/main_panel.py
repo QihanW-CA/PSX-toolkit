@@ -52,3 +52,19 @@ class PSXTOOLKIT_PT_main_panel(bpy.types.Panel):
             "psx_toolkit.export_model",
             text="Export PS1 Model",
         )
+
+        animation_box = self.layout.box()
+        animation_box.label(text="Animation Output")
+        animation_box.prop(settings, "animation_name")
+        animation_box.prop(settings, "animation_start_frame")
+        animation_box.prop(settings, "animation_end_frame")
+        animation_box.prop(settings, "animation_frame_step")
+        selected_mesh_count = sum(
+            selected_object.type == "MESH"
+            for selected_object in context.selected_objects
+        )
+        animation_box.label(text=f"Selected Meshes: {selected_mesh_count}")
+        animation_box.operator(
+            "psx_toolkit.export_animation",
+            text="Export Animation",
+        )

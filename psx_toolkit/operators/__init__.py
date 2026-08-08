@@ -2,6 +2,10 @@
 
 import bpy
 
+from .export_animation import (
+    PSXTOOLKIT_OT_confirm_animation_overwrite,
+    PSXTOOLKIT_OT_export_animation,
+)
 from .export_model import (
     PSXTOOLKIT_OT_confirm_overwrite,
     PSXTOOLKIT_OT_export_model,
@@ -12,6 +16,8 @@ _classes = (
     PSXTOOLKIT_OT_prepare_export,
     PSXTOOLKIT_OT_confirm_overwrite,
     PSXTOOLKIT_OT_export_model,
+    PSXTOOLKIT_OT_confirm_animation_overwrite,
+    PSXTOOLKIT_OT_export_animation,
 )
 
 

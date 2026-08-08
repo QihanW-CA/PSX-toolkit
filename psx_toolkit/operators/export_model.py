@@ -1,6 +1,5 @@
 """Blender workflow for static PS1 model exports."""
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,9 +8,12 @@ from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 
 from ..exporter.c_writer import write_model_files
 from ..exporter.mesh_extractor import MeshExtractionError, extract_evaluated_mesh
-from ..exporter.texture_size import TextureSizeError, resolve_texture_size
-from ..utils.mesh_validation import is_mesh_fully_triangulated
-from ..utils.naming import sanitize_c_identifier
+from ..utils.mesh_validation import (
+    is_mesh_fully_triangulated,
+    requires_triangulation_confirmation,
+)
+from ..utils.naming import resolve_model_output_base
+from .export_context import resolve_export_environment
 from .mesh_checks import (
     NON_TRIANGLE_MESSAGE,
     selected_mesh_object_or_report,
@@ -177,9 +179,10 @@ class PSXTOOLKIT_OT_export_model(bpy.types.Operator):
         source_object = selected_mesh_object_or_report(self, context)
         if source_object is None:
             return {"CANCELLED"}
-        if self._resolve_output(context) is None:
+        if self._resolve_output(context, source_object) is None:
             return {"CANCELLED"}
-        if is_mesh_fully_triangulated(source_object.data):
+        settings = context.scene.psx_toolkit_export_settings
+        if not requires_triangulation_confirmation(settings, source_object.data):
             return self.execute(context)
 
         return context.window_manager.invoke_confirm(
@@ -209,55 +212,27 @@ class PSXTOOLKIT_OT_export_model(bpy.types.Operator):
     def _resolve_output(
         self,
         context: bpy.types.Context,
+        source_object,
     ) -> _ResolvedExportSettings | None:
         settings = context.scene.psx_toolkit_export_settings
-        directory_value = settings.output_directory.strip()
-        if not directory_value:
-            self.report({"ERROR"}, "Select an output folder before exporting.")
+        environment = resolve_export_environment(self, context)
+        if environment is None:
             return None
 
-        try:
-            directory = Path(bpy.path.abspath(directory_value)).expanduser()
-            directory_exists = directory.exists()
-            directory_is_valid = directory.is_dir()
-        except (OSError, ValueError) as error:
-            self.report({"ERROR"}, f"Invalid output directory: {error}")
-            return None
-        if not directory_exists:
-            self.report({"ERROR"}, f"Output directory does not exist: {directory}")
-            return None
-        if not directory_is_valid:
-            self.report({"ERROR"}, f"Output path is not a directory: {directory}")
-            return None
-        if not os.access(directory, os.W_OK):
-            self.report({"ERROR"}, "Insufficient permission to write export files.")
-            return None
-
-        filename = settings.output_filename.strip()
-        if not filename:
-            self.report({"ERROR"}, "Enter an output filename before exporting.")
-            return None
-
-        symbol_base = sanitize_c_identifier(filename)
+        symbol_base = resolve_model_output_base(
+            source_object.name,
+            settings.output_filename,
+        )
         settings.output_filename = symbol_base
-        scale = settings.export_scale
-        if scale <= 0:
-            self.report({"ERROR"}, "Export scale must be greater than zero.")
-            return None
-        try:
-            texture_width, texture_height = resolve_texture_size(settings)
-        except TextureSizeError as error:
-            self.report({"ERROR"}, str(error))
-            return None
 
         return _ResolvedExportSettings(
-            directory=directory,
+            directory=environment.directory,
             symbol_base=symbol_base,
-            scale=scale,
-            coordinate_space=settings.coordinate_space,
-            texture_width=texture_width,
-            texture_height=texture_height,
-            flip_v=settings.flip_v,
+            scale=environment.scale,
+            coordinate_space=environment.coordinate_space,
+            texture_width=environment.texture_width,
+            texture_height=environment.texture_height,
+            flip_v=environment.flip_v,
         )
 
     def execute(self, context: bpy.types.Context):
@@ -271,7 +246,7 @@ class PSXTOOLKIT_OT_export_model(bpy.types.Operator):
             if not self._validate_temporary_triangulation(source_object.data):
                 return {"CANCELLED"}
 
-        resolved_output = self._resolve_output(context)
+        resolved_output = self._resolve_output(context, source_object)
         if resolved_output is None:
             return {"CANCELLED"}
         mesh = _extract_or_report(

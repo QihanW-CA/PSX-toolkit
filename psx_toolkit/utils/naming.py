@@ -55,3 +55,12 @@ def sanitize_c_identifier(value: str) -> str:
     if identifier in _C_KEYWORDS:
         identifier = f"{identifier}_model"
     return identifier
+
+
+def resolve_model_output_base(mesh_name: str, file_name: str) -> str:
+    """Resolve a complete static model file and C-symbol basename."""
+
+    explicit_name = file_name.strip()
+    if explicit_name:
+        return sanitize_c_identifier(explicit_name)
+    return f"{sanitize_c_identifier(mesh_name)}_model"

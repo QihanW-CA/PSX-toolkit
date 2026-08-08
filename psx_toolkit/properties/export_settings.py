@@ -11,6 +11,28 @@ from bpy.props import (
 )
 
 
+def _get_animation_start_frame(settings) -> int:
+    stored_value = settings.get("animation_start_frame")
+    if stored_value is not None:
+        return int(stored_value)
+    return int(settings.id_data.frame_start)
+
+
+def _set_animation_start_frame(settings, value: int) -> None:
+    settings["animation_start_frame"] = value
+
+
+def _get_animation_end_frame(settings) -> int:
+    stored_value = settings.get("animation_end_frame")
+    if stored_value is not None:
+        return int(stored_value)
+    return int(settings.id_data.frame_end)
+
+
+def _set_animation_end_frame(settings, value: int) -> None:
+    settings["animation_end_frame"] = value
+
+
 class PSXTOOLKIT_PG_export_settings(bpy.types.PropertyGroup):
     """Store model output choices with the current Blender scene."""
 
@@ -77,4 +99,35 @@ class PSXTOOLKIT_PG_export_settings(bpy.types.PropertyGroup):
     flip_v: BoolProperty(
         name="Flip V",
         default=True,
+    )
+    prepared_mesh: PointerProperty(
+        name="Prepared Mesh",
+        description="Mesh datablock most recently approved for static export",
+        type=bpy.types.Mesh,
+        options={"HIDDEN"},
+    )
+    prepared_topology_fingerprint: StringProperty(
+        name="Prepared Topology Fingerprint",
+        description="Connectivity fingerprint recorded during preparation",
+        default="",
+        options={"HIDDEN"},
+    )
+    animation_name: StringProperty(
+        name="Animation Name",
+        default="animation",
+    )
+    animation_start_frame: IntProperty(
+        name="Start Frame",
+        get=_get_animation_start_frame,
+        set=_set_animation_start_frame,
+    )
+    animation_end_frame: IntProperty(
+        name="End Frame",
+        get=_get_animation_end_frame,
+        set=_set_animation_end_frame,
+    )
+    animation_frame_step: IntProperty(
+        name="Frame Step",
+        default=1,
+        min=1,
     )

@@ -21,6 +21,7 @@ from psx_toolkit.exporter.model import (
     ExportUV,
     ExportVertex,
 )
+from psx_toolkit.utils.naming import resolve_model_output_base
 
 
 def _sample_mesh() -> ExportMesh:
@@ -101,6 +102,19 @@ class CWriterTests(unittest.TestCase):
 
             self.assertFalse((directory / "cat_model.c").exists())
             self.assertFalse((directory / "cat_model.h").exists())
+
+    def test_overwrite_protection_uses_resolved_model_filename(self) -> None:
+        symbol_base = resolve_model_output_base("cat_body", "player_body")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            write_model_files(directory, symbol_base, _sample_mesh())
+
+            with self.assertRaises(FileExistsError):
+                write_model_files(directory, symbol_base, _sample_mesh())
+
+            self.assertTrue((directory / "player_body.c").exists())
+            self.assertTrue((directory / "player_body.h").exists())
 
 
 if __name__ == "__main__":

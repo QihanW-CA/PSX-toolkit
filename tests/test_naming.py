@@ -2,7 +2,10 @@
 
 import unittest
 
-from psx_toolkit.utils.naming import sanitize_c_identifier
+from psx_toolkit.utils.naming import (
+    resolve_model_output_base,
+    sanitize_c_identifier,
+)
 
 
 class NamingTests(unittest.TestCase):
@@ -17,6 +20,30 @@ class NamingTests(unittest.TestCase):
 
     def test_c_keyword_is_disambiguated(self) -> None:
         self.assertEqual(sanitize_c_identifier("static"), "static_model")
+
+    def test_empty_model_filename_uses_mesh_fallback(self) -> None:
+        self.assertEqual(
+            resolve_model_output_base("cat_body", ""),
+            "cat_body_model",
+        )
+
+    def test_whitespace_model_filename_uses_mesh_fallback(self) -> None:
+        self.assertEqual(
+            resolve_model_output_base("cat_body", "   "),
+            "cat_body_model",
+        )
+
+    def test_custom_model_filename_is_complete_base(self) -> None:
+        self.assertEqual(
+            resolve_model_output_base("cat_body", "player_body"),
+            "player_body",
+        )
+
+    def test_filename_containing_mesh_name_is_not_duplicated(self) -> None:
+        self.assertEqual(
+            resolve_model_output_base("cat_body", "cat_body_model"),
+            "cat_body_model",
+        )
 
 
 if __name__ == "__main__":
